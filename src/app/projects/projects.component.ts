@@ -1,0 +1,325 @@
+import { Component, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+
+export interface GitHubStats {
+  totalStars: number;
+  totalForks: number;
+  repositories: number;
+  followers: number;
+  avatarUrl: string;
+  username: string;
+  profileUrl: string;
+}
+
+export interface ContributionDay {
+  date: string;
+  count: number;
+  level: 0 | 1 | 2 | 3 | 4;
+}
+
+export interface ContributionWeek {
+  days: ContributionDay[];
+}
+
+export interface PinnedRepo {
+  name: string;
+  description: string;
+  url: string;
+  stars: number;
+  forks: number;
+  language: string;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  about: string;
+  tags: string[];
+  image: string;
+  links: {
+    backend?: string;
+    frontend?: string;
+  };
+}
+
+export type TabType = 'projects' | 'developer';
+
+@Component({
+  selector: 'app-projects',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './projects.component.html',
+  styleUrls: ['./projects.component.scss'],
+})
+export class ProjectsComponent implements OnInit, OnDestroy {
+  private readonly GITHUB_USERNAME = 'mohamedeltramsy71-dev';
+  private readonly GITHUB_API = 'https://api.github.com';
+
+  constructor(private http: HttpClient, private router: Router) {}
+
+  activeTab = signal<TabType>('projects');
+
+  searchQuery = signal('');
+  activeFilters = signal<string[]>([]);
+
+  githubLoading = signal(true);
+  githubError = signal(false);
+  githubStats = signal<GitHubStats | null>(null);
+  pinnedRepos = signal<PinnedRepo[]>([]);
+  contributionWeeks = signal<ContributionWeek[]>([]);
+  totalContributions = signal(0);
+  selectedYear = signal(new Date().getFullYear());
+
+  readonly availableYears = computed(() => {
+    const current = new Date().getFullYear();
+    return [current, current - 1, current - 2];
+  });
+
+  get isLight(): boolean {
+    return document.documentElement.hasAttribute('data-theme');
+  }
+
+  overlayVisible = false;
+  overlayWord    = '';
+  overlayPhase: 'in' | 'hold' | 'out' = 'in';
+  private scrollLocked = false;
+  private t1: any; private t2: any; private t3: any;
+  private wheelHandler = (e: WheelEvent) => this.onWheel(e);
+
+  ngOnInit() {
+    this.loadGitHubData();
+
+    this.scrollLocked = true;
+    setTimeout(() => { this.scrollLocked = false; }, 700);
+
+    window.addEventListener('wheel', this.wheelHandler, { passive: true }); // ← passive: true عشان يسمح بالسكرول
+  }
+
+  ngOnDestroy() {
+    clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.t3);
+    window.removeEventListener('wheel', this.wheelHandler);
+  }
+
+  onWheel(e: WheelEvent) {
+    if (this.scrollLocked) return;
+
+    const atTop = window.scrollY <= 0;
+    if (e.deltaY < -30 && atTop) {
+      this.triggerTransition('Stack', '/stack');
+    }
+  }
+
+  private triggerTransition(word: string, route: string) {
+    this.scrollLocked   = true;
+    this.overlayWord    = word;
+    this.overlayPhase   = 'in';
+    this.overlayVisible = true;
+
+    this.t1 = setTimeout(() => { this.overlayPhase = 'hold'; }, 250);
+    this.t2 = setTimeout(() => { this.overlayPhase = 'out'; }, 900);
+    this.t3 = setTimeout(() => {
+      this.overlayVisible = false;
+      this.router.navigate([route]);
+    }, 1300);
+  }
+
+  async loadGitHubData() {
+    this.githubLoading.set(true);
+    this.githubError.set(false);
+    try {
+      await Promise.all([
+        this.fetchUserStats(),
+        this.fetchPinnedRepos(),
+        this.fetchContributions(),
+      ]);
+    } catch {
+      this.githubError.set(true);
+    } finally {
+      this.githubLoading.set(false);
+    }
+  }
+
+  private async fetchUserStats() {
+    const user = await fetch(
+      `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}`
+    ).then((r) => r.json());
+
+    const repos: any[] = await fetch(
+      `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}/repos?per_page=100`
+    ).then((r) => r.json());
+
+    const totalStars = repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
+    const totalForks = repos.reduce((sum, r) => sum + (r.forks_count || 0), 0);
+
+    this.githubStats.set({
+      totalStars,
+      totalForks,
+      repositories: user.public_repos || repos.length,
+      followers: user.followers || 0,
+      avatarUrl: user.avatar_url,
+      username: user.login,
+      profileUrl: user.html_url,
+    });
+
+    const sorted = [...repos]
+      .filter((r) => !r.fork)
+      .sort((a, b) => b.stargazers_count - a.stargazers_count)
+      .slice(0, 6);
+
+    this.pinnedRepos.set(
+      sorted.map((r) => ({
+        name: r.name,
+        description: r.description || '',
+        url: r.html_url,
+        stars: r.stargazers_count,
+        forks: r.forks_count,
+        language: r.language || '',
+      }))
+    );
+  }
+
+  private async fetchContributions() {
+    try {
+      const year = this.selectedYear();
+      const res = await fetch(
+        `https://github-contributions-api.jogruber.de/v4/${this.GITHUB_USERNAME}?y=${year}`
+      );
+      const data = await res.json();
+
+      const contributions: ContributionDay[] = data.contributions || [];
+      this.totalContributions.set(
+        contributions.reduce((s: number, d: ContributionDay) => s + d.count, 0)
+      );
+
+      const weeks: ContributionWeek[] = [];
+      for (let i = 0; i < contributions.length; i += 7) {
+        weeks.push({ days: contributions.slice(i, i + 7) });
+      }
+      this.contributionWeeks.set(weeks);
+    } catch {
+      this.contributionWeeks.set([]);
+    }
+  }
+
+  private async fetchPinnedRepos() {}
+
+  async changeYear(year: number) {
+    this.selectedYear.set(year);
+    await this.fetchContributions();
+  }
+
+  getLevelColor(level: number): string {
+    const colors = ['#1a1a1a', '#1e3a5f', '#2563EB', '#3B82F6', '#60A5FA'];
+    return colors[level] ?? colors[0];
+  }
+
+  getLangColor(lang: string): string {
+    const map: Record<string, string> = {
+      'TypeScript': '#3178C6',
+      'JavaScript': '#F7DF1E',
+      'C#': '#239120',
+      'Python': '#3776AB',
+      'HTML': '#E34F26',
+      'CSS': '#1572B6',
+      'SCSS': '#CC6699',
+      'Dart': '#0175C2',
+    };
+    return map[lang] ?? '#6B7280';
+  }
+
+  openGitHub() {
+    window.open(`https://github.com/${this.GITHUB_USERNAME}`, '_blank');
+  }
+
+  readonly allProjects: Project[] = [
+    {
+      id: 1,
+      name: 'Fatoora Rahtk',
+      about:
+        'A multi-tenant e-commerce SaaS platform built for the Saudi market — featuring marketplace integrations (Salla, Zid, Shopify), ZATCA e-invoicing compliance, role-based multi-tenancy, and a full e-commerce stack.',
+      tags: ['.Net', 'Angular'],
+      image: 'assets/projects/fatora_rahk.png',
+      links: {
+        backend: 'http://myrahtk.runasp.net/swagger',
+        frontend: 'https://ecom-platform-front-end.vercel.app/',
+      },
+    },
+    {
+      id: 2,
+      name: 'Mazzad',
+      about:
+        'A real-time Arabic auction platform with live bidding rooms powered by SignalR, two-factor authentication, full RTL/LTR Arabic-English support, and a gold-and-black design system.',
+      tags: ['.Net', 'Angular'],
+      image: 'assets/projects/mazzad.png',
+      links: {
+        backend: 'https://mazzzad.runasp.net/swagger/index.html',
+        frontend: 'https://mazzad-front-end.vercel.app/',
+      },
+    },
+  ];
+
+  readonly allTags = computed(() => {
+    const tags = new Set<string>();
+    this.allProjects.forEach((p) => p.tags.forEach((t) => tags.add(t)));
+    return Array.from(tags);
+  });
+
+  readonly filteredProjects = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    const filters = this.activeFilters();
+
+    return this.allProjects.filter((project) => {
+      const matchesSearch =
+        !query ||
+        project.name.toLowerCase().includes(query) ||
+        project.about.toLowerCase().includes(query) ||
+        project.tags.some((t) => t.toLowerCase().includes(query));
+
+      const matchesFilter =
+        filters.length === 0 ||
+        filters.every((f) => project.tags.includes(f));
+
+      return matchesSearch && matchesFilter;
+    });
+  });
+
+  setTab(tab: TabType) {
+    this.activeTab.set(tab);
+  }
+
+  toggleFilter(tag: string) {
+    const current = this.activeFilters();
+    if (current.includes(tag)) {
+      this.activeFilters.set(current.filter((t) => t !== tag));
+    } else {
+      this.activeFilters.set([...current, tag]);
+    }
+  }
+
+  isFilterActive(tag: string): boolean {
+    return this.activeFilters().includes(tag);
+  }
+
+  onSearch(value: string) {
+    this.searchQuery.set(value);
+  }
+
+  getTagIcon(tag: string): string {
+    const iconMap: Record<string, string> = {
+      '.Net': 'assets/icons/dotnet.svg',
+      Angular: 'assets/icons/angular.svg',
+      TypeScript: 'assets/icons/src_svgs_typescript.svg',
+      JavaScript: 'assets/icons/src_svgs_javascript.svg',
+      Python: 'assets/icons/python.svg',
+      Database: 'assets/icons/database-svgrepo-co.svg',
+    };
+    return iconMap[tag] || '';
+  }
+
+  openLink(url: string) {
+    window.open(url, '_blank', 'noopener noreferrer');
+  }
+}

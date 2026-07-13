@@ -1,0 +1,114 @@
+<section class="stack">
+
+  <!-- Left side -->
+  <div class="stack__left">
+    <div class="stack__header">
+      <p class="stack__eyebrow">My Tech</p>
+      <h2 class="stack__title">Stack</h2>
+    </div>
+
+    <div class="stack__grid">
+      <div class="stack__item" *ngFor="let tech of techs">
+        <div class="stack__icon">
+          <img [src]="tech.icon" [alt]="tech.name" />
+        </div>
+        <span class="stack__name">{{ tech.name }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right side — About -->
+  <div class="stack__right">
+    <div class="about-card">
+      <p class="about-card__intro">
+        Full-Stack Developer specialized in <span class="about-card__highlight">.NET</span>
+        and <span class="about-card__highlight">Angular</span>, building scalable
+        web applications with clean architecture.
+      </p>
+
+      <div class="about-card__certs">
+
+        <!-- Faculty -->
+        <div class="cert">
+          <div class="cert__icon">🎓</div>
+          <div class="cert__info">
+            <span class="cert__title">Faculty of Computers & AI</span>
+            <span class="cert__sub">Damietta University</span>
+          </div>
+        </div>
+
+        <!-- Angular -->
+        <div class="cert">
+          <div class="cert__icon cert__icon--img">
+            <img src="assets/icons/angular.svg" alt="Angular" />
+          </div>
+          <div class="cert__info">
+            <span class="cert__title">Angular Training</span>
+            <span class="cert__sub">ITI</span>
+          </div>
+        </div>
+
+        <!-- .NET — merged -->
+        <div class="cert cert--wide">
+          <div class="cert__icon cert__icon--img">
+            <img src="assets/icons/dotnet.svg" alt=".NET" />
+          </div>
+          <div class="cert__info">
+            <span class="cert__title">.NET Training & Certified</span>
+            <div class="cert__badges">
+              <span class="cert__badge">Ruwad Masr Al-Raqamiya</span>
+              <span class="cert__badge">Microsoft / Coursera</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RAG -->
+        <div class="cert">
+          <div class="cert__icon cert__icon--img">
+            <img src="assets/icons/database-svgrepo-com.svg" alt="RAG" />
+          </div>
+          <div class="cert__info">
+            <span class="cert__title">RAG & AI Integration</span>
+            <span class="cert__sub">ITI</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- Socials — vertical on right side -->
+<div class="side-socials">
+  <div class="side-socials__line"></div>
+  <a [href]="socials.linkedin" target="_blank" rel="noopener" class="side-socials__link side-socials__link--linkedin" aria-label="LinkedIn">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+      <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+    </svg>
+  </a>
+  <a [href]="socials.instagram" target="_blank" rel="noopener" class="side-socials__link side-socials__link--instagram" aria-label="Instagram">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+      <circle cx="12" cy="12" r="4"/>
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+  </a>
+  <a [href]="socials.github" target="_blank" rel="noopener" class="side-socials__link side-socials__link--github" aria-label="GitHub">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+    </svg>
+  </a>
+  <div class="side-socials__line"></div>
+</div>
+
+@if (overlayVisible) {
+  <div class="neon-overlay"
+       [class.phase-in]="overlayPhase === 'in'"
+       [class.phase-hold]="overlayPhase === 'hold'"
+       [class.phase-out]="overlayPhase === 'out'"
+       [class.is-light]="isLight">
+    <span class="neon-word">{{ overlayWord }}</span>
+  </div>
+}
