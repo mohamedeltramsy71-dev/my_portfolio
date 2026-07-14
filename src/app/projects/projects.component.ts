@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { environment } from '../../environments/environment';
 
 export interface GitHubStats {
   totalStars: number;
@@ -179,7 +178,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     try {
       await Promise.all([
         this.fetchUserStats(),
-        this.fetchPinnedRepos(),
         this.fetchContributions(),
       ]);
     } catch {
@@ -189,26 +187,16 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     }
   }
 
-  private get authHeaders(): Record<string, string> {
-    return {
-      Authorization: `Bearer ${environment.githubToken}`,
-      Accept: 'application/vnd.github+json',
-    };
-  }
-
   private async fetchUserStats() {
     const user = await fetch(
-      `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}`,
-      { headers: this.authHeaders }
+      `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}`
     ).then((r) => r.json());
 
-    // /user/repos?type=all بيرجع كل الـ repos بما فيها المشاركات
     let repos: any[] = [];
     let page = 1;
     while (true) {
       const batch: any[] = await fetch(
-        `${this.GITHUB_API}/user/repos?type=all&per_page=100&page=${page}`,
-        { headers: this.authHeaders }
+        `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}/repos?per_page=100&page=${page}`
       ).then((r) => r.json());
       if (!Array.isArray(batch) || !batch.length) break;
       repos = [...repos, ...batch];
@@ -222,16 +210,14 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.githubStats.set({
       totalStars,
       totalForks,
-      repositories: repos.length,
+      repositories: user.public_repos || repos.length,
       followers: user.followers || 0,
       avatarUrl: user.avatar_url,
       username: user.login,
       profileUrl: user.html_url,
     });
 
-    const sorted = [...repos]
-      .sort((a, b) => b.stargazers_count - a.stargazers_count);
-
+    const sorted = [...repos].sort((a, b) => b.stargazers_count - a.stargazers_count);
     this.pinnedRepos.set(
       sorted.map((r) => ({
         name: r.name,
