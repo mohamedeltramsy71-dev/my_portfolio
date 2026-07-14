@@ -57,7 +57,7 @@ export type TabType = 'projects' | 'developer';
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
   private readonly GITHUB_USERNAME = 'mohamedeltramsy71-dev';
-  private readonly GITHUB_API = 'https://api.github.com';
+  private readonly GITHUB_PROXY = '/api/github';
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -189,14 +189,14 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   private async fetchUserStats() {
     const user = await fetch(
-      `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}`
+      `${this.GITHUB_PROXY}?endpoint=users/${this.GITHUB_USERNAME}`
     ).then((r) => r.json());
 
     let repos: any[] = [];
     let page = 1;
     while (true) {
       const batch: any[] = await fetch(
-        `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}/repos?per_page=100&page=${page}`
+        `${this.GITHUB_PROXY}?endpoint=user/repos%3Ftype%3Dall%26per_page%3D100%26page%3D${page}`
       ).then((r) => r.json());
       if (!Array.isArray(batch) || !batch.length) break;
       repos = [...repos, ...batch];
