@@ -16,12 +16,15 @@ export class StackComponent implements OnInit, OnDestroy {
   }
 
   techs = [
-    { name: 'Angular',    icon: 'assets/icons/angular.svg'               },
-    { name: '.NET',       icon: 'assets/icons/dotnet.svg'                 },
-    { name: 'TypeScript', icon: 'assets/icons/src_svgs_typescript.svg'   },
-    { name: 'JavaScript', icon: 'assets/icons/src_svgs_javascript.svg'   },
-    { name: 'RAG',        icon: 'assets/icons/database-svgrepo-com.svg'  },
-    { name: 'Python',     icon: 'assets/icons/python.svg'                 },
+    { name: 'Angular',    icon: 'assets/icons/angular.svg'              },
+    { name: '.NET',       icon: 'assets/icons/dotnet.svg'               },
+    { name: 'TypeScript', icon: 'assets/icons/src_svgs_typescript.svg'  },
+    { name: 'JavaScript', icon: 'assets/icons/src_svgs_javascript.svg'  },
+    { name: 'RAG',        icon: 'assets/icons/database-svgrepo-com.svg' },
+    { name: 'Python',     icon: 'assets/icons/python.svg'               },
+    { name: 'C#',         icon: 'assets/icons/csharp-original.svg'      },
+    { name: 'HTML',       icon: 'assets/icons/html5-original.svg'       },
+    { name: 'CSS',        icon: 'assets/icons/css3-original.svg'        },
   ];
 
   socials = {
@@ -43,7 +46,6 @@ export class StackComponent implements OnInit, OnDestroy {
     this.scrollLocked = true;
     setTimeout(() => { this.scrollLocked = false; }, 700);
 
-    // مسجلين يدوي مش passive عشان نقدر نعمل preventDefault
     window.addEventListener('wheel', this.wheelHandler, { passive: false });
   }
 
@@ -53,7 +55,16 @@ export class StackComponent implements OnInit, OnDestroy {
   }
 
   onWheel(e: WheelEvent) {
-    e.preventDefault(); // يمنع الـ native scroll خالص
+    const atTop    = window.scrollY === 0;
+    const atBottom = window.scrollY + window.innerHeight >= document.body.scrollHeight - 2;
+
+    // لو لسه في محتوى، اسكرول عادي من غير ما ننقل
+    if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atBottom)) {
+      return;
+    }
+
+    // وصلنا للحد — امنع الـ scroll وابدأ الـ transition
+    e.preventDefault();
 
     if (this.scrollLocked) return;
 

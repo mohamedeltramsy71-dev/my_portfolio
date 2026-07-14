@@ -54,8 +54,33 @@
 
             <!-- Card Thumbnail -->
             <div class="card-thumbnail">
-              <img [src]="project.image" [alt]="project.name" class="thumbnail-img" />
+              @if (project.videoUrl) {
+                <video
+                  class="thumbnail-img"
+                  [src]="project.videoUrl"
+                  [poster]="project.image"
+                  [muted]="true"
+                  loop
+                  playsinline
+                  preload="auto"
+                  (mouseenter)="playVideo($event)"
+                  (mouseleave)="pauseVideo($event)"
+                ></video>
+              } @else {
+                <img [src]="project.image" [alt]="project.name" class="thumbnail-img" />
+              }
               <div class="thumbnail-overlay"></div>
+
+              <!-- Watch Demo Button -->
+              @if (project.videoUrl) {
+                <button class="watch-btn" (click)="openVideo(project.videoUrl!, $event)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                    viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  Watch Demo
+                </button>
+              }
 
               <!-- Links on hover -->
               <div class="card-links">
@@ -233,10 +258,10 @@
 
             <!-- Contribution Graph -->
             <div class="contrib-graph-wrapper">
-              <!-- Month labels -->
-              <div class="month-labels">
-                @for (m of ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; track m) {
-                  <span>{{ m }}</span>
+              <!-- Month labels (dynamic) -->
+              <div class="month-labels-dynamic">
+                @for (m of monthLabels(); track m.index) {
+                  <span class="month-label-item" [style.left.px]="m.index * 14">{{ m.label }}</span>
                 }
               </div>
 
@@ -269,7 +294,7 @@
           <!-- Top Repos -->
           @if (pinnedRepos().length > 0) {
             <div class="repos-section">
-              <h3 class="repos-title">Top Repositories</h3>
+              <h3 class="repos-title">Repositories ({{ pinnedRepos().length }})</h3>
               <div class="repos-grid">
                 @for (repo of pinnedRepos(); track repo.name) {
                   <div class="repo-card" (click)="openLink(repo.url)">
@@ -330,6 +355,31 @@
          [class.phase-out]="overlayPhase === 'out'"
          [class.is-light]="isLight">
       <span class="neon-word">{{ overlayWord }}</span>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════
+       VIDEO MODAL
+  ══════════════════════════════════ -->
+  @if (activeVideoUrl()) {
+    <div class="video-modal-backdrop" (click)="onBackdropClick($event)">
+      <div class="video-modal">
+        <button class="video-modal-close" (click)="closeVideo()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <video
+          [src]="activeVideoUrl()!"
+          controls
+          autoplay
+          [muted]="true"
+          class="video-modal-player"
+        ></video>
+      </div>
     </div>
   }
 

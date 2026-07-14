@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 export interface GitHubStats {
   totalStars: number;
@@ -39,6 +40,7 @@ export interface Project {
   about: string;
   tags: string[];
   image: string;
+  videoUrl?: string;
   links: {
     backend?: string;
     frontend?: string;
@@ -73,9 +75,53 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   totalContributions = signal(0);
   selectedYear = signal(new Date().getFullYear());
 
+  // ─── Video Modal ─────────────────────────────────────────────────────────
+  activeVideoUrl = signal<string | null>(null);
+
+  openVideo(url: string, event: MouseEvent) {
+    event.stopPropagation();
+    this.activeVideoUrl.set(url);
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeVideo() {
+    this.activeVideoUrl.set(null);
+    document.body.style.overflow = '';
+  }
+
+  onBackdropClick(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('video-modal-backdrop')) {
+      this.closeVideo();
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   readonly availableYears = computed(() => {
     const current = new Date().getFullYear();
     return [current, current - 1, current - 2];
+  });
+
+  readonly monthLabels = computed(() => {
+    const weeks = this.contributionWeeks();
+    if (!weeks.length) return [];
+
+    const months: { label: string; index: number }[] = [];
+    let lastMonth = -1;
+
+    weeks.forEach((week, i) => {
+      const firstDay = week.days.find(d => d.date);
+      if (!firstDay) return;
+      const month = new Date(firstDay.date).getMonth();
+      if (month !== lastMonth) {
+        months.push({
+          label: new Date(firstDay.date).toLocaleString('en', { month: 'short' }),
+          index: i,
+        });
+        lastMonth = month;
+      }
+    });
+
+    return months;
   });
 
   get isLight(): boolean {
@@ -95,12 +141,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.scrollLocked = true;
     setTimeout(() => { this.scrollLocked = false; }, 700);
 
-    window.addEventListener('wheel', this.wheelHandler, { passive: true }); // ← passive: true عشان يسمح بالسكرول
+    window.addEventListener('wheel', this.wheelHandler, { passive: true });
   }
 
   ngOnDestroy() {
     clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.t3);
     window.removeEventListener('wheel', this.wheelHandler);
+    document.body.style.overflow = '';
   }
 
   onWheel(e: WheelEvent) {
@@ -142,14 +189,32 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     }
   }
 
+  private get authHeaders(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${environment.githubToken}`,
+      Accept: 'application/vnd.github+json',
+    };
+  }
+
   private async fetchUserStats() {
     const user = await fetch(
-      `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}`
+      `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}`,
+      { headers: this.authHeaders }
     ).then((r) => r.json());
 
-    const repos: any[] = await fetch(
-      `${this.GITHUB_API}/users/${this.GITHUB_USERNAME}/repos?per_page=100`
-    ).then((r) => r.json());
+    // /user/repos?type=all بيرجع كل الـ repos بما فيها المشاركات
+    let repos: any[] = [];
+    let page = 1;
+    while (true) {
+      const batch: any[] = await fetch(
+        `${this.GITHUB_API}/user/repos?type=all&per_page=100&page=${page}`,
+        { headers: this.authHeaders }
+      ).then((r) => r.json());
+      if (!Array.isArray(batch) || !batch.length) break;
+      repos = [...repos, ...batch];
+      if (batch.length < 100) break;
+      page++;
+    }
 
     const totalStars = repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
     const totalForks = repos.reduce((sum, r) => sum + (r.forks_count || 0), 0);
@@ -157,7 +222,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.githubStats.set({
       totalStars,
       totalForks,
-      repositories: user.public_repos || repos.length,
+      repositories: repos.length,
       followers: user.followers || 0,
       avatarUrl: user.avatar_url,
       username: user.login,
@@ -165,9 +230,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     });
 
     const sorted = [...repos]
-      .filter((r) => !r.fork)
-      .sort((a, b) => b.stargazers_count - a.stargazers_count)
-      .slice(0, 6);
+      .sort((a, b) => b.stargazers_count - a.stargazers_count);
 
     this.pinnedRepos.set(
       sorted.map((r) => ({
@@ -234,6 +297,21 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     window.open(`https://github.com/${this.GITHUB_USERNAME}`, '_blank');
   }
 
+  playVideo(event: MouseEvent) {
+    const video = event.currentTarget as HTMLVideoElement;
+    video.muted = true;
+    const promise = video.play();
+    if (promise !== undefined) {
+      promise.catch(() => {});
+    }
+  }
+
+  pauseVideo(event: MouseEvent) {
+    const video = event.currentTarget as HTMLVideoElement;
+    video.pause();
+    video.currentTime = 0;
+  }
+
   readonly allProjects: Project[] = [
     {
       id: 1,
@@ -258,6 +336,26 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         backend: 'https://mazzzad.runasp.net/swagger/index.html',
         frontend: 'https://mazzad-front-end.vercel.app/',
       },
+    },
+    {
+      id: 3,
+      name: 'Cryptography Platform',
+      about:
+        'Built a secure FastAPI backend for cryptographic operations, including encryption, decryption, hashing, and digital signatures, with REST APIs, Swagger documentation, and a modular architecture.',
+      tags: ['Python'],
+      image: 'assets/images/Cryptography.jpeg',
+      videoUrl: 'assets/videos/cryptography.mp4',
+      links: {},
+    },
+    {
+      id: 4,
+      name: 'Smart Contract & Document Assistant (RAG)',
+      about:
+        'Built a Retrieval-Augmented Generation (RAG) application for legal document analysis with LangChain, FastAPI, ChromaDB, Groq (Llama 3.1), and Gradio, enabling document Q&A, summarization, semantic search, and source-cited responses.',
+      tags: ['Python', 'RAG'],
+      image: 'assets/images/Rag.png',
+      videoUrl: 'assets/videos/Rag.mp4',
+      links: {},
     },
   ];
 
@@ -314,7 +412,8 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       TypeScript: 'assets/icons/src_svgs_typescript.svg',
       JavaScript: 'assets/icons/src_svgs_javascript.svg',
       Python: 'assets/icons/python.svg',
-      Database: 'assets/icons/database-svgrepo-co.svg',
+      RAG: 'assets/icons/database-svgrepo-com.svg',
+      Database: 'assets/icons/database-svgrepo-com.svg',
     };
     return iconMap[tag] || '';
   }
