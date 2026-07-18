@@ -15,7 +15,7 @@
           @if (msg.role === 'assistant') {
             <div class="msg__avatar">M</div>
           }
-          <div class="msg__bubble">{{ msg.content }}</div>
+          <div class="msg__bubble" dir="auto">{{ msg.content }}</div>
         </div>
       }
 
@@ -49,6 +49,7 @@
         (keydown)="onKeyDown($event)"
         placeholder="Ask me anything..."
         rows="1"
+        dir="auto"
       ></textarea>
       <button
         class="send-btn"

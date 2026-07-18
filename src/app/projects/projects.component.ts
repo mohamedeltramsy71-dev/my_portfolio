@@ -156,6 +156,9 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     if (e.deltaY < -30 && atTop) {
       this.triggerTransition('Stack', '/stack');
     }
+    if (e.deltaY > 30) {
+      this.triggerTransition('Ask Me', '/ask-me');
+    }
   }
 
   private triggerTransition(word: string, route: string) {
