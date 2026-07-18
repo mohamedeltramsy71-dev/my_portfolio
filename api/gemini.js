@@ -63,5 +63,5 @@ RULES:
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text
     ?? "Hmm, couldn't get a response — try again!";
 
-  res.status(200).json({ text });
+  res.status(200).json(data);
 }
