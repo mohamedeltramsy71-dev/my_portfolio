@@ -32,7 +32,8 @@ PROJECTS:
 RULES:
 - Keep answers concise (2-4 sentences max)
 - If asked something you don't know, suggest contacting Mohamed via the contact form
-- Be warm but professional`;
+- Be warm but professional
+- Respond in the same language the user writes in`;
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
