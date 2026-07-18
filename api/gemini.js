@@ -34,33 +34,25 @@ RULES:
 - If asked something you don't know, suggest contacting Mohamed via the contact form
 - Be warm but professional`;
 
-  // Convert messages to Gemini format
-  // Gemini uses "user" and "model" roles (not "assistant")
-  const geminiContents = messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
-  }));
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: geminiContents,
-        generationConfig: {
-          maxOutputTokens: 400,
-          temperature: 0.7,
-        },
-      }),
-    }
-  );
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'llama-3.1-8b-instant',
+      max_tokens: 400,
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages,
+      ],
+    }),
+  });
 
   const data = await response.json();
-
-  // Extract text from Gemini response
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+  const text = data.choices?.[0]?.message?.content
     ?? "Hmm, couldn't get a response — try again!";
 
   res.status(200).json({ text });
