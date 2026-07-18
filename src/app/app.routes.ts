@@ -17,6 +17,11 @@ export const routes: Routes = [
       import('./projects/projects.component').then(m => m.ProjectsComponent),
   },
   {
+    path: 'ask-me',
+    loadComponent: () =>
+      import('./ask-me/ask-me.component').then(m => m.AskMeComponent),
+  },
+  {
     path: 'contact',
     loadComponent: () =>
       import('./contact/contact.component').then(m => m.ContactComponent),

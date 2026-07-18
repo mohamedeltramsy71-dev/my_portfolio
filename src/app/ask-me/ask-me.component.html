@@ -1,0 +1,78 @@
+<section class="ask-me">
+  <div class="ask-me__blob"></div>
+
+  <div class="ask-me__header">
+    <p class="eyebrow">Interactive</p>
+    <h1 class="page-title">Ask <span class="accent">Mohamed</span></h1>
+    <p class="page-sub">Powered by AI — ask anything about my work, stack, or availability</p>
+  </div>
+
+  <div class="chat-wrap">
+    <!-- Messages -->
+    <div class="messages-area">
+      @for (msg of messages(); track $index) {
+        <div class="msg" [class.msg--user]="msg.role === 'user'" [class.msg--ai]="msg.role === 'assistant'">
+          @if (msg.role === 'assistant') {
+            <div class="msg__avatar">M</div>
+          }
+          <div class="msg__bubble">{{ msg.content }}</div>
+        </div>
+      }
+
+      <!-- Typing indicator -->
+      @if (loading()) {
+        <div class="msg msg--ai">
+          <div class="msg__avatar">M</div>
+          <div class="msg__bubble msg__bubble--typing">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      }
+
+      <div #messagesEnd></div>
+    </div>
+
+    <!-- Suggested questions (shown only at start) -->
+    @if (messages().length === 1 && !loading()) {
+      <div class="suggestions">
+        @for (q of suggestions; track q) {
+          <button class="suggestion" (click)="send(q)">{{ q }}</button>
+        }
+      </div>
+    }
+
+    <!-- Input row -->
+    <div class="input-row">
+      <textarea
+        class="chat-input"
+        [(ngModel)]="input"
+        (keydown)="onKeyDown($event)"
+        placeholder="Ask me anything..."
+        rows="1"
+      ></textarea>
+      <button
+        class="send-btn"
+        [disabled]="loading() || !input.trim()"
+        (click)="send()"
+        aria-label="Send"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+@if (overlayVisible) {
+  <div class="neon-overlay"
+       [class.phase-in]="overlayPhase === 'in'"
+       [class.phase-hold]="overlayPhase === 'hold'"
+       [class.phase-out]="overlayPhase === 'out'"
+       [class.is-light]="isLight">
+    <span class="neon-word">{{ overlayWord }}</span>
+  </div>
+}
