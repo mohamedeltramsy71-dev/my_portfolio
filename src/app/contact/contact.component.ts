@@ -117,7 +117,7 @@ export class ContactComponent {
     try {
       await emailjs.send(
         'service_dk1lp48',
-        'template_ubhhf9s',
+        'template_dthpxih',
         {
           name:    this.callForm.name,
           email:   this.callForm.email,
@@ -141,7 +141,7 @@ export class ContactComponent {
     try {
       await emailjs.send(
         'service_dk1lp48',
-        'template_ubhhf9s',
+        'template_dthpxih',
         {
           name:    this.msgForm.name,
           email:   this.msgForm.email,
