@@ -27,7 +27,7 @@ PROJECTS:
 1. Fatoora Rahtk — multi-tenant SaaS e-commerce for Saudi market. ZATCA e-invoicing, Salla/Zid/Shopify integrations.
 2. Mazzad — real-time Arabic B2B auction platform with SignalR live bidding, RTL/LTR support.
 3. Cryptography Platform — FastAPI backend for encryption, decryption, hashing, digital signatures.
-4. Smart Contract RAG Assistant — LangChain + FastAPI + ChromaDB + Groq for legal document Q&A.
+4. Smart Contract RAG Assistant — LangChain + FastAPI + ChromaDB for legal document Q&A.
 
 RULES:
 - Keep answers concise (2-4 sentences max)
@@ -35,14 +35,14 @@ RULES:
 - Be warm but professional
 - Respond in the same language the user writes in`;
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'deepseek-ai/deepseek-v4-pro-0813',
       max_tokens: 400,
       temperature: 0.7,
       messages: [
