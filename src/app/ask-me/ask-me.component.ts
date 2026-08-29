@@ -47,7 +47,6 @@ export class AskMeComponent implements OnInit, OnDestroy {
   overlayPhase: 'in' | 'hold' | 'out' = 'in';
   private scrollLocked = false;
   private t1: any; private t2: any; private t3: any;
-  private scrollTimer: any = null;
   private wheelHandler = (e: WheelEvent) => this.onWheel(e);
 
   constructor(private router: Router) {}
@@ -60,7 +59,6 @@ export class AskMeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.t3);
-    clearTimeout(this.scrollTimer);
     window.removeEventListener('wheel', this.wheelHandler);
   }
 
@@ -97,60 +95,15 @@ export class AskMeComponent implements OnInit, OnDestroy {
         .slice(1)
         .map(m => ({ role: m.role, content: m.content }));
 
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: history }),
       });
 
-      if (!res.body) throw new Error('No response body');
-
-      this.messages.update(msgs => [...msgs, { role: 'assistant', content: '' }]);
-      this.loading.set(false);
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let accumulatedDelta = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6).trim();
-          if (data === '[DONE]') break;
-
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content ?? '';
-            if (delta) {
-              accumulatedDelta += delta;
-            }
-          } catch { /* skip malformed chunks */ }
-        }
-
-        // Update UI with accumulated delta in one shot
-        if (accumulatedDelta) {
-          const toAppend = accumulatedDelta;
-          accumulatedDelta = '';
-          this.messages.update(msgs => {
-            const updated = [...msgs];
-            updated[updated.length - 1] = {
-              ...updated[updated.length - 1],
-              content: updated[updated.length - 1].content + toAppend,
-            };
-            return updated;
-          });
-          this.throttledScroll();
-        }
-      }
-
+      const data = await res.json();
+      const reply = data.text ?? "Hmm, couldn't get a response — try again!";
+      this.messages.update(msgs => [...msgs, { role: 'assistant', content: reply }]);
     } catch {
       this.messages.update(msgs => [
         ...msgs,
@@ -160,15 +113,6 @@ export class AskMeComponent implements OnInit, OnDestroy {
       this.loading.set(false);
       this.scrollToBottom();
     }
-  }
-
-  // Scroll once per 200ms max instead of on every chunk
-  private throttledScroll() {
-    if (this.scrollTimer) return;
-    this.scrollTimer = setTimeout(() => {
-      this.messagesEnd?.nativeElement?.scrollIntoView({ behavior: 'smooth' });
-      this.scrollTimer = null;
-    }, 200);
   }
 
   onKeyDown(e: KeyboardEvent) {
