@@ -38,16 +38,18 @@ RULES:
 - Respond in the same language the user writes in`;
 
   try {
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const nvRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
+        'Accept': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-oss-20b',
+        model: 'nvidia/ising-calibration-1.5-31b',
         max_tokens: 400,
-        temperature: 0.7,
+        temperature: 1.00,
+        top_p: 0.95,
         stream: false,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -56,14 +58,14 @@ RULES:
       }),
     });
 
-    if (!groqRes.ok) {
-      const err = await groqRes.text();
-      console.error('Groq error:', err);
-      console.error('Status:', groqRes.status);
-      return res.status(500).json({ error: 'Groq API error' });
+    if (!nvRes.ok) {
+      const err = await nvRes.text();
+      console.error('NVIDIA API error:', err);
+      console.error('Status:', nvRes.status);
+      return res.status(500).json({ error: 'NVIDIA API error' });
     }
 
-    const data = await groqRes.json();
+    const data = await nvRes.json();
     const text = data.choices?.[0]?.message?.content ?? "Hmm, couldn't get a response — try again!";
     return res.status(200).json({ text });
 
