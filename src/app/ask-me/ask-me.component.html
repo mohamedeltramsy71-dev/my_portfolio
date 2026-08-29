@@ -15,25 +15,22 @@
           @if (msg.role === 'assistant') {
             <div class="msg__avatar">M</div>
           }
-          <div class="msg__bubble" dir="auto">{{ msg.content }}</div>
-        </div>
-      }
-
-      <!-- Typing indicator -->
-      @if (loading()) {
-        <div class="msg msg--ai">
-          <div class="msg__avatar">M</div>
-          <div class="msg__bubble msg__bubble--typing">
-            <span></span><span></span><span></span>
-          </div>
+          @if (msg.content) {
+            <div class="msg__bubble" dir="auto">{{ msg.content }}</div>
+          } @else if (loading()) {
+            <!-- Typing dots بيظهر لحد ما يبدأ الـ streaming -->
+            <div class="msg__bubble msg__bubble--typing">
+              <span></span><span></span><span></span>
+            </div>
+          }
         </div>
       }
 
       <div #messagesEnd></div>
     </div>
 
-    <!-- Suggested questions (shown only at start) -->
-    @if (messages().length === 1 && !loading()) {
+    <!-- Suggested questions -->
+    @if (messages().length === 1 && !loading() && !streaming()) {
       <div class="suggestions">
         @for (q of suggestions; track q) {
           <button class="suggestion" (click)="send(q)">{{ q }}</button>
@@ -53,7 +50,7 @@
       ></textarea>
       <button
         class="send-btn"
-        [disabled]="loading() || !input.trim()"
+        [disabled]="loading() || streaming() || !input.trim()"
         (click)="send()"
         aria-label="Send"
       >

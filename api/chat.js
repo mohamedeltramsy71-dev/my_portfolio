@@ -37,27 +37,52 @@ RULES:
 - Be warm but professional
 - Respond in the same language the user writes in`;
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.1-8b-instant',
-      max_tokens: 400,
-      temperature: 0.7,
-      stream: false,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages,
-      ],
-    }),
-  });
+  try {
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        max_tokens: 400,
+        temperature: 0.7,
+        stream: true,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages,
+        ],
+      }),
+    });
 
-  const data = await response.json();
-  const text = data.choices?.[0]?.message?.content
-    ?? "Hmm, couldn't get a response — try again!";
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
-  res.status(200).json({ text });
+    const reader = groqRes.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+
+      for (const line of lines) {
+        const data = line.replace('data: ', '').trim();
+        if (data === '[DONE]') { res.end(); return; }
+        try {
+          const parsed = JSON.parse(data);
+          const token = parsed.choices?.[0]?.delta?.content;
+          if (token) res.write(`data: ${JSON.stringify({ token })}\n\n`);
+        } catch { }
+      }
+    }
+
+    res.end();
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 }

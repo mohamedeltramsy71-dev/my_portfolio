@@ -1,6 +1,6 @@
 import {
   Component, OnInit, OnDestroy,
-  ElementRef, ViewChild, signal
+  ElementRef, ViewChild, signal, ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -30,6 +30,7 @@ export class AskMeComponent implements OnInit, OnDestroy {
 
   input = '';
   loading = signal(false);
+  streaming = signal(false);
 
   readonly suggestions = [
     "What's your strongest project?",
@@ -49,7 +50,7 @@ export class AskMeComponent implements OnInit, OnDestroy {
   private t1: any; private t2: any; private t3: any;
   private wheelHandler = (e: WheelEvent) => this.onWheel(e);
 
-  constructor(private router: Router) { }
+  constructor(private router: Router, private cdr: ChangeDetectorRef) { }
 
   ngOnInit() {
     this.scrollLocked = true;
@@ -90,9 +91,14 @@ export class AskMeComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.scrollToBottom();
 
+    // أضف message فاضية للـ assistant هتتملى بالـ streaming
+    this.messages.update(msgs => [...msgs, { role: 'assistant', content: '' }]);
+    const aiIndex = this.messages().length - 1;
+
     try {
       const history = this.messages()
-        .slice(1)
+        .slice(1, -1) // استثني الـ welcome message والـ placeholder
+        .filter(m => m.content) // استثني الـ placeholder الفاضي
         .map(m => ({ role: m.role, content: m.content }));
 
       const res = await fetch('/api/chat', {
@@ -101,16 +107,60 @@ export class AskMeComponent implements OnInit, OnDestroy {
         body: JSON.stringify({ messages: history }),
       });
 
-      const data = await res.json();
-      const reply = data.text ?? "Hmm, couldn't get a response — try again!";
-      this.messages.update(msgs => [...msgs, { role: 'assistant', content: reply }]);
+      if (!res.ok || !res.body) throw new Error('Bad response');
+
+      this.loading.set(false);
+      this.streaming.set(true);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+
+        for (const line of lines) {
+          try {
+            const { token } = JSON.parse(line.replace('data: ', '').trim());
+            if (token) {
+              fullText += token;
+              // تحديث الـ message الأخيرة بالـ streaming
+              this.messages.update(msgs => {
+                const updated = [...msgs];
+                updated[aiIndex] = { role: 'assistant', content: fullText };
+                return updated;
+              });
+              this.scrollToBottom();
+            }
+          } catch { }
+        }
+      }
+
+      // لو الرد فضي (حاجة غلط)
+      if (!fullText) {
+        this.messages.update(msgs => {
+          const updated = [...msgs];
+          updated[aiIndex] = { role: 'assistant', content: "Hmm, couldn't get a response — try again!" };
+          return updated;
+        });
+      }
+
     } catch {
-      this.messages.update(msgs => [
-        ...msgs,
-        { role: 'assistant', content: 'Something went wrong on my end. Please try again!' },
-      ]);
+      this.messages.update(msgs => {
+        const updated = [...msgs];
+        updated[aiIndex] = {
+          role: 'assistant',
+          content: 'Something went wrong on my end. Please try again!',
+        };
+        return updated;
+      });
     } finally {
       this.loading.set(false);
+      this.streaming.set(false);
       this.scrollToBottom();
     }
   }
