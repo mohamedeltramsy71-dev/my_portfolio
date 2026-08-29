@@ -43,13 +43,13 @@ export class AskMeComponent implements OnInit, OnDestroy {
   }
 
   overlayVisible = false;
-  overlayWord    = '';
+  overlayWord = '';
   overlayPhase: 'in' | 'hold' | 'out' = 'in';
   private scrollLocked = false;
   private t1: any; private t2: any; private t3: any;
   private wheelHandler = (e: WheelEvent) => this.onWheel(e);
 
-  constructor(private router: Router) {}
+  constructor(private router: Router) { }
 
   ngOnInit() {
     this.scrollLocked = true;
@@ -70,11 +70,11 @@ export class AskMeComponent implements OnInit, OnDestroy {
 
   private triggerTransition(word: string, route: string) {
     this.scrollLocked = true;
-    this.overlayWord  = word;
+    this.overlayWord = word;
     this.overlayPhase = 'in';
     this.overlayVisible = true;
     this.t1 = setTimeout(() => { this.overlayPhase = 'hold'; }, 250);
-    this.t2 = setTimeout(() => { this.overlayPhase = 'out';  }, 900);
+    this.t2 = setTimeout(() => { this.overlayPhase = 'out'; }, 900);
     this.t3 = setTimeout(() => {
       this.overlayVisible = false;
       this.router.navigate([route]);
@@ -95,7 +95,7 @@ export class AskMeComponent implements OnInit, OnDestroy {
         .slice(1)
         .map(m => ({ role: m.role, content: m.content }));
 
-      const res = await fetch('/api/gemini', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: history }),

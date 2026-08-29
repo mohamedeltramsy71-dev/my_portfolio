@@ -47,7 +47,7 @@ RULES:
       model: 'llama-3.3-70b-versatile',
       max_tokens: 400,
       temperature: 0.7,
-      stream: true,
+      stream: false,
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages,
@@ -55,18 +55,9 @@ RULES:
     }),
   });
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content
+    ?? "Hmm, couldn't get a response — try again!";
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    res.write(decoder.decode(value, { stream: true }));
-  }
-
-  res.end();
+  res.status(200).json({ text });
 }
