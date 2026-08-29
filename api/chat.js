@@ -37,18 +37,16 @@ RULES:
 - Be warm but professional
 - Respond in the same language the user writes in`;
 
-  const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
+      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'nvidia/nemotron-3.5-lightning-30b-a3b',
+      model: 'llama-3.3-70b-versatile',
       max_tokens: 400,
-      temperature: 1,
-      top_p: 0.95,
-      chat_template_kwargs: { enable_thinking: false },
+      temperature: 0.7,
       stream: true,
       messages: [
         { role: 'system', content: systemPrompt },
