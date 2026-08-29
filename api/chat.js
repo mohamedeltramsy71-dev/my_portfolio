@@ -1,3 +1,5 @@
+export const maxDuration = 30;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -47,6 +49,7 @@ RULES:
       temperature: 0.7,
       top_p: 0.95,
       chat_template_kwargs: { thinking: false },
+      stream: true,
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages,
@@ -54,9 +57,18 @@ RULES:
     }),
   });
 
-  const data = await response.json();
-  const text = data.choices?.[0]?.message?.content
-    ?? "Hmm, couldn't get a response — try again!";
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
 
-  res.status(200).json({ text });
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    res.write(decoder.decode(value, { stream: true }));
+  }
+
+  res.end();
 }
