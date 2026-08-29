@@ -47,6 +47,7 @@ export class AskMeComponent implements OnInit, OnDestroy {
   overlayPhase: 'in' | 'hold' | 'out' = 'in';
   private scrollLocked = false;
   private t1: any; private t2: any; private t3: any;
+  private scrollTimer: any = null;
   private wheelHandler = (e: WheelEvent) => this.onWheel(e);
 
   constructor(private router: Router) {}
@@ -59,6 +60,7 @@ export class AskMeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.t3);
+    clearTimeout(this.scrollTimer);
     window.removeEventListener('wheel', this.wheelHandler);
   }
 
@@ -103,13 +105,13 @@ export class AskMeComponent implements OnInit, OnDestroy {
 
       if (!res.body) throw new Error('No response body');
 
-      // Add empty assistant message then hide typing dots
       this.messages.update(msgs => [...msgs, { role: 'assistant', content: '' }]);
       this.loading.set(false);
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let accumulatedDelta = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -128,19 +130,27 @@ export class AskMeComponent implements OnInit, OnDestroy {
             const parsed = JSON.parse(data);
             const delta = parsed.choices?.[0]?.delta?.content ?? '';
             if (delta) {
-              this.messages.update(msgs => {
-                const updated = [...msgs];
-                updated[updated.length - 1] = {
-                  ...updated[updated.length - 1],
-                  content: updated[updated.length - 1].content + delta,
-                };
-                return updated;
-              });
-              this.scrollToBottom();
+              accumulatedDelta += delta;
             }
           } catch { /* skip malformed chunks */ }
         }
+
+        // Update UI with accumulated delta in one shot
+        if (accumulatedDelta) {
+          const toAppend = accumulatedDelta;
+          accumulatedDelta = '';
+          this.messages.update(msgs => {
+            const updated = [...msgs];
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              content: updated[updated.length - 1].content + toAppend,
+            };
+            return updated;
+          });
+          this.throttledScroll();
+        }
       }
+
     } catch {
       this.messages.update(msgs => [
         ...msgs,
@@ -150,6 +160,15 @@ export class AskMeComponent implements OnInit, OnDestroy {
       this.loading.set(false);
       this.scrollToBottom();
     }
+  }
+
+  // Scroll once per 200ms max instead of on every chunk
+  private throttledScroll() {
+    if (this.scrollTimer) return;
+    this.scrollTimer = setTimeout(() => {
+      this.messagesEnd?.nativeElement?.scrollIntoView({ behavior: 'smooth' });
+      this.scrollTimer = null;
+    }, 200);
   }
 
   onKeyDown(e: KeyboardEvent) {
