@@ -59,6 +59,7 @@ RULES:
     if (!groqRes.ok) {
       const err = await groqRes.text();
       console.error('Groq error:', err);
+      console.error('Status:', groqRes.status);
       return res.status(500).json({ error: 'Groq API error' });
     }
 
