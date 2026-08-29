@@ -45,6 +45,8 @@ RULES:
       model: 'deepseek-ai/deepseek-v4-pro-0813',
       max_tokens: 400,
       temperature: 0.7,
+      top_p: 0.95,
+      chat_template_kwargs: { thinking: false },
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages,
