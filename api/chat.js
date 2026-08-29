@@ -44,11 +44,11 @@ RULES:
       'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'deepseek-ai/deepseek-v4-pro-0813',
+      model: 'nvidia/nemotron-3-super-120b-a12b',
       max_tokens: 400,
-      temperature: 0.7,
+      temperature: 1,
       top_p: 0.95,
-      chat_template_kwargs: { thinking: false },
+      chat_template_kwargs: { enable_thinking: false },
       stream: true,
       messages: [
         { role: 'system', content: systemPrompt },
