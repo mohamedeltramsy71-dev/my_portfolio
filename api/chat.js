@@ -44,7 +44,7 @@ RULES:
       'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'nvidia/nemotron-3-super-120b-a12b',
+      model: 'nvidia/nemotron-3.5-lightning-30b-a3b',
       max_tokens: 400,
       temperature: 1,
       top_p: 0.95,
