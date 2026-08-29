@@ -97,8 +97,8 @@ export class AskMeComponent implements OnInit, OnDestroy {
 
     try {
       const history = this.messages()
-        .slice(1, -1) // استثني الـ welcome message والـ placeholder
-        .filter(m => m.content) // استثني الـ placeholder الفاضي
+        .slice(0, -1)
+        .filter(m => m.content)
         .map(m => ({ role: m.role, content: m.content }));
 
       const res = await fetch('/api/chat', {
