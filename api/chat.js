@@ -1,13 +1,13 @@
-export const runtime = 'edge';
+export const maxDuration = 30;
 
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages } = await req.json();
+  const { messages } = req.body;
   if (!messages?.length) {
-    return new Response('messages are required', { status: 400 });
+    return res.status(400).json({ error: 'messages are required' });
   }
 
   const systemPrompt = `You are the AI assistant embedded in Mohamed Eltramsy's portfolio. Answer questions about Mohamed in a friendly, direct voice as if you ARE Mohamed — but make clear you're an AI.
@@ -37,59 +37,37 @@ RULES:
 - Be warm but professional
 - Respond in the same language the user writes in`;
 
-  const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.1-8b-instant',
-      max_tokens: 400,
-      temperature: 0.7,
-      stream: true,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages,
-      ],
-    }),
-  });
+  try {
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        max_tokens: 400,
+        temperature: 0.7,
+        stream: false,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages,
+        ],
+      }),
+    });
 
-  // بنرجع الـ stream مباشرة من Groq للـ client
-  const stream = new ReadableStream({
-    async start(controller) {
-      const reader = groqRes.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) { controller.close(); break; }
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-
-        for (const line of lines) {
-          const data = line.replace('data: ', '').trim();
-          if (data === '[DONE]') { controller.close(); return; }
-          try {
-            const parsed = JSON.parse(data);
-            const token = parsed.choices?.[0]?.delta?.content;
-            if (token) {
-              controller.enqueue(
-                new TextEncoder().encode(`data: ${JSON.stringify({ token })}\n\n`)
-              );
-            }
-          } catch { }
-        }
-      }
+    if (!groqRes.ok) {
+      const err = await groqRes.text();
+      console.error('Groq error:', err);
+      return res.status(500).json({ error: 'Groq API error' });
     }
-  });
 
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    },
-  });
+    const data = await groqRes.json();
+    const text = data.choices?.[0]?.message?.content ?? "Hmm, couldn't get a response — try again!";
+    return res.status(200).json({ text });
+
+  } catch (err) {
+    console.error('Handler error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }
