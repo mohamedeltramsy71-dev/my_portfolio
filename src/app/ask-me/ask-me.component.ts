@@ -95,7 +95,7 @@ export class AskMeComponent implements OnInit, OnDestroy {
         .slice(1)
         .map(m => ({ role: m.role, content: m.content }));
 
-      const res = await fetch('/api/gemini', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: history }),
