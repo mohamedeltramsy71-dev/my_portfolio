@@ -40,6 +40,7 @@ export interface Project {
   tags: string[];
   image: string;
   videoUrl?: string;
+  images?: string[];        // ← للمشاريع اللي عندها gallery صور
   links: {
     backend?: string;
     frontend?: string;
@@ -92,6 +93,50 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     if ((event.target as HTMLElement).classList.contains('video-modal-backdrop')) {
       this.closeVideo();
     }
+  }
+
+  // ─── Image Gallery Modal ──────────────────────────────────────────────────
+  activeGallery = signal<{ images: string[]; currentIndex: number } | null>(null);
+
+  openGallery(images: string[], event: MouseEvent) {
+    event.stopPropagation();
+    this.activeGallery.set({ images, currentIndex: 0 });
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeGallery() {
+    this.activeGallery.set(null);
+    document.body.style.overflow = '';
+  }
+
+  onGalleryBackdropClick(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('gallery-modal-backdrop')) {
+      this.closeGallery();
+    }
+  }
+
+  nextImage() {
+    const g = this.activeGallery();
+    if (!g) return;
+    this.activeGallery.set({
+      ...g,
+      currentIndex: (g.currentIndex + 1) % g.images.length,
+    });
+  }
+
+  prevImage() {
+    const g = this.activeGallery();
+    if (!g) return;
+    this.activeGallery.set({
+      ...g,
+      currentIndex: (g.currentIndex - 1 + g.images.length) % g.images.length,
+    });
+  }
+
+  goToImage(index: number) {
+    const g = this.activeGallery();
+    if (!g) return;
+    this.activeGallery.set({ ...g, currentIndex: index });
   }
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -301,6 +346,8 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     video.currentTime = 0;
   }
 
+  // ─── Projects List ────────────────────────────────────────────────────────
+  // الترتيب: Fatoora Rahtk → Mazzad → Rihla → RAG → LMS
   readonly allProjects: Project[] = [
     {
       id: 1,
@@ -328,13 +375,15 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     },
     {
       id: 3,
-      name: 'Cryptography Platform',
+      name: 'Rihla',
       about:
-        'Built a secure FastAPI backend for cryptographic operations, including encryption, decryption, hashing, and digital signatures, with REST APIs, Swagger documentation, and a modular architecture.',
-      tags: ['Python'],
-      image: 'assets/images/Cryptography.jpeg',
-      videoUrl: 'assets/videos/cryptography.mp4',
-      links: {},
+        'A full-stack smart tour guide SaaS platform with 3 dashboards (Tourist, Guide, Admin), custom trip builder, real-time chat and notifications via SignalR, Google OAuth, and Paymob payment integration — built with Angular 19 and ASP.NET Core Clean Architecture.',
+      tags: ['.Net', 'Angular'],
+      image: 'assets/projects/Rihla.png',
+      links: {
+        backend: 'https://tourguidee.runasp.net/swagger/index.html',
+        frontend: 'https://tour-guide-frontend-sable.vercel.app/',
+      },
     },
     {
       id: 4,
@@ -344,6 +393,23 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       tags: ['Python', 'RAG'],
       image: 'assets/images/Rag.png',
       videoUrl: 'assets/videos/Rag.mp4',
+      links: {},
+    },
+    {
+      id: 5,
+      name: 'Learning Management System',
+      about:
+        'A production-oriented LMS backend with course and lesson management, role-based access (Student / Instructor), and Clean Architecture — designed for scalability and extensible for quizzes, payments, and analytics.',
+      tags: ['.Net'],
+      image: 'assets/projects/LMS.png',
+      images: [
+        'assets/projects/lms/1.jpeg',
+        'assets/projects/lms/2.jpeg',
+        'assets/projects/lms/3.jpeg',
+        'assets/projects/lms/4.jpeg',
+        'assets/projects/lms/5.jpeg',
+        'assets/projects/lms/6.jpeg',
+      ],
       links: {},
     },
   ];

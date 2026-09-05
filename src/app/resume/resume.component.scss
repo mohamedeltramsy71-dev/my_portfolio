@@ -143,13 +143,25 @@
   margin: 0; padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.5rem;
 
   li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  &__name {
     font-size: 0.9rem;
     font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
+  }
+
+  &__desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
   }
 }
 

@@ -71,7 +71,7 @@
               }
               <div class="thumbnail-overlay"></div>
 
-              <!-- Watch Demo Button -->
+              <!-- Watch Demo Button (video projects) -->
               @if (project.videoUrl) {
                 <button class="watch-btn" (click)="openVideo(project.videoUrl!, $event)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
@@ -79,6 +79,20 @@
                     <polygon points="5 3 19 12 5 21 5 3"/>
                   </svg>
                   Watch Demo
+                </button>
+              }
+
+              <!-- View Screenshots Button (image-gallery projects) -->
+              @if (project.images && project.images.length > 0) {
+                <button class="watch-btn" (click)="openGallery(project.images!, $event)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  Screenshots
                 </button>
               }
 
@@ -379,6 +393,68 @@
           [muted]="true"
           class="video-modal-player"
         ></video>
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════
+       IMAGE GALLERY MODAL
+  ══════════════════════════════════ -->
+  @if (activeGallery()) {
+    <div class="gallery-modal-backdrop" (click)="onGalleryBackdropClick($event)">
+      <div class="gallery-modal">
+
+        <!-- Close -->
+        <button class="gallery-close" (click)="closeGallery()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+
+        <!-- Counter -->
+        <div class="gallery-counter">
+          {{ activeGallery()!.currentIndex + 1 }} / {{ activeGallery()!.images.length }}
+        </div>
+
+        <!-- Prev -->
+        <button class="gallery-nav gallery-prev" (click)="prevImage()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+
+        <!-- Image -->
+        <img
+          [src]="activeGallery()!.images[activeGallery()!.currentIndex]"
+          [alt]="'Screenshot ' + (activeGallery()!.currentIndex + 1)"
+          class="gallery-img"
+        />
+
+        <!-- Next -->
+        <button class="gallery-nav gallery-next" (click)="nextImage()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+
+        <!-- Dots -->
+        <div class="gallery-dots">
+          @for (img of activeGallery()!.images; track $index) {
+            <button
+              class="gallery-dot"
+              [class.active]="activeGallery()!.currentIndex === $index"
+              (click)="goToImage($index)"
+            ></button>
+          }
+        </div>
+
       </div>
     </div>
   }
